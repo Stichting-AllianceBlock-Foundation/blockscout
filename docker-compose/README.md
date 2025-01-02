@@ -36,6 +36,12 @@ and 5 containers for microservices (written in Rust):
 
 **Note for Linux users**: Linux users need to run the local node on http://0.0.0.0/ rather than http://127.0.0.1/
 
+## Clean up
+
+```bash
+bash clean.sh
+```
+
 ## Configs for different Ethereum clients
 
 The repo contains built-in configs for different JSON RPC clients without need to build the image.
