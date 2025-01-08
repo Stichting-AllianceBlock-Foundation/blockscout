@@ -21,8 +21,10 @@ services:
 
   backend:
     depends_on:
-      - db
-      - redis-db
+      db:
+        condition: service_healthy
+      redis-db:
+        condition: service_started
     extends:
       file: ./services/backend.yml
       service: backend
@@ -36,20 +38,20 @@ services:
     environment:
         ETHEREUM_JSONRPC_HTTP_URL: http://host.docker.internal:8545/
         ETHEREUM_JSONRPC_TRACE_URL: http://host.docker.internal:8545/
-        ETHEREUM_JSONRPC_WS_URL: ws://host.docker.internal:8545/
+        ETHEREUM_JSONRPC_WS_URL: ws://host.docker.internal:8546/
         CHAIN_ID: '32382'
 
-  nft_media_handler:
-    depends_on:
-      - backend
-    extends:
-      file: ./services/nft_media_handler.yml
-      service: nft_media_handler
-    build:
-      context: ..
-      dockerfile: ./docker/Dockerfile
-      args:
-        RELEASE_VERSION: 7.0.2
+  # nft_media_handler:
+  #   depends_on:
+  #     - backend
+  #   extends:
+  #     file: ./services/nft_media_handler.yml
+  #     service: nft_media_handler
+  #   build:
+  #     context: ..
+  #     dockerfile: ./docker/Dockerfile
+  #     args:
+  #       RELEASE_VERSION: 6.10.0
 
   visualizer:
     extends:
@@ -83,16 +85,18 @@ services:
 
   stats:
     depends_on:
-      - stats-db
-      - backend
+      stats-db: 
+        condition: service_healthy
+      backend: 
+        condition: service_healthy
     extends:
       file: ./services/stats.yml
       service: stats
 
   user-ops-indexer:
     depends_on:
-      - db
-      - backend
+      backend:
+        condition: service_healthy # Avoid db migration race condition
     extends:
       file: ./services/user-ops-indexer.yml
       service: user-ops-indexer
