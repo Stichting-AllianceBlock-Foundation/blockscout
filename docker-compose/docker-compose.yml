@@ -36,9 +36,9 @@ services:
     links:
       - db:database
     environment:
-        ETHEREUM_JSONRPC_HTTP_URL: http://host.docker.internal:8545/
-        ETHEREUM_JSONRPC_TRACE_URL: http://host.docker.internal:8545/
-        ETHEREUM_JSONRPC_WS_URL: ws://host.docker.internal:8546/
+        ETHEREUM_JSONRPC_HTTP_URL: https://rpc.devnet.nexera.network/
+        ETHEREUM_JSONRPC_TRACE_URL: https://rpc.devnet.nexera.network/
+        #ETHEREUM_JSONRPC_WS_URL: ws://host.docker.internal:8546/
         CHAIN_ID: '32382'
 
   # nft_media_handler:
@@ -69,6 +69,12 @@ services:
     extends:
       file: ./services/frontend.yml
       service: frontend
+    environment:
+      - NEXT_PUBLIC_API_HOST=${NEXT_PUBLIC_API_HOST:-localhost}
+      - NEXT_PUBLIC_STATS_API_HOST=${NEXT_PUBLIC_STATS_API_HOST:-http://localhost:8080}
+      - NEXT_PUBLIC_APP_HOST=${NEXT_PUBLIC_APP_HOST:-localhost}
+      - NEXT_PUBLIC_VISUALIZE_API_HOST=${NEXT_PUBLIC_VISUALIZE_API_HOST:-http://localhost:8081}
+
 
   stats-db-init:
     extends:
