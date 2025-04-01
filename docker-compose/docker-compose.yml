@@ -113,8 +113,6 @@ services:
     extends:
       file: ./services/user-ops-indexer.yml
       service: user-ops-indexer
-    environmnet:
-      STATS__CONDITIONAL_START__USER_OPS_PAST_INDEXING_FINISHED__ENABLED: false
 
   proxy:
     depends_on:
