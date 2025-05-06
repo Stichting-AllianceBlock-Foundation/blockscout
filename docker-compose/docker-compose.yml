@@ -108,6 +108,8 @@ services:
     environment:
       NEXT_PUBLIC_STATS_API_HOST: ${NEXT_PUBLIC_STATS_API_HOST:-http://localhost:8080}
       STATS__CONDITIONAL_START__USER_OPS_PAST_INDEXING_FINISHED__ENABLED: false
+      STATS__SERVER__HTTP__CORS__ENABLED: true
+      STATS__SERVER__HTTP__CORS__ALLOWED_ORIGIN: "*"
 
   user-ops-indexer:
     depends_on:
