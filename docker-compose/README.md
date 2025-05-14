@@ -36,6 +36,12 @@ and 5 containers for microservices (written in Rust):
 
 **Note for Linux users**: Linux users need to run the local node on http://0.0.0.0/ rather than http://127.0.0.1/
 
+## Clean up
+
+```bash
+bash clean.sh
+```
+
 ## Configs for different Ethereum clients
 
 The repo contains built-in configs for different JSON RPC clients without need to build the image.
@@ -91,3 +97,8 @@ make stop
 ```
 
 ***Note***: Makefile uses the same .env files since it is running docker-compose services inside.
+
+## Geth Node
+
+Make sure geth node has the `debug,net,eth,web3,txpool` http API enabled see https://docs.blockscout.com/setup/requirements/client-settings#geth
+Also it needs to be an Archive node, or disable see 
