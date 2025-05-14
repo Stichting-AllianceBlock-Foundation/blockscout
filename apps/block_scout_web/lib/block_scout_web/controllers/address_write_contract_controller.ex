@@ -18,14 +18,16 @@ defmodule BlockScoutWeb.AddressWriteContractController do
   alias Indexer.Fetcher.OnDemand.CoinBalance, as: CoinBalanceOnDemand
 
   def index(conn, %{"address_id" => address_hash_string} = params) do
+    ip = AccessHelper.conn_to_ip_string(conn)
+
     address_options = [
       necessity_by_association: %{
-        :contracts_creation_internal_transaction => :optional,
         :names => :optional,
         :smart_contract => :optional,
         :token => :optional,
-        :contracts_creation_transaction => :optional
-      }
+        Address.contract_creation_transaction_associations() => :optional
+      },
+      ip: ip
     ]
 
     custom_abi? = AddressView.has_address_custom_abi_with_write_functions?(conn, address_hash_string)
@@ -49,7 +51,7 @@ defmodule BlockScoutWeb.AddressWriteContractController do
           [
             address: address,
             non_custom_abi: true,
-            coin_balance_status: CoinBalanceOnDemand.trigger_fetch(address),
+            coin_balance_status: CoinBalanceOnDemand.trigger_fetch(ip, address),
             counters_path: address_path(conn, :address_counters, %{"id" => Address.checksum(address_hash)}),
             tags: get_address_tags(address_hash, current_user(conn))
           ]
@@ -67,7 +69,7 @@ defmodule BlockScoutWeb.AddressWriteContractController do
                 [
                   address: address,
                   non_custom_abi: false,
-                  coin_balance_status: CoinBalanceOnDemand.trigger_fetch(address),
+                  coin_balance_status: CoinBalanceOnDemand.trigger_fetch(ip, address),
                   counters_path: address_path(conn, :address_counters, %{"id" => Address.checksum(address_hash)}),
                   tags: get_address_tags(address_hash, current_user(conn))
                 ]

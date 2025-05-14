@@ -122,6 +122,10 @@ defmodule BlockScoutWeb.Routers.ApiRouter do
     delete("/token-info", V2.ImportController, :delete_token_info)
 
     get("/smart-contracts/:address_hash_param", V2.ImportController, :try_to_search_contract)
+
+    if @chain_type == :optimism do
+      post("/optimism/interop/", V2.OptimismController, :interop_import)
+    end
   end
 
   scope "/v2", as: :api_v2 do
@@ -300,6 +304,9 @@ defmodule BlockScoutWeb.Routers.ApiRouter do
         get("/withdrawals/count", V2.OptimismController, :withdrawals_count)
         get("/games", V2.OptimismController, :games)
         get("/games/count", V2.OptimismController, :games_count)
+        get("/interop/messages", V2.OptimismController, :interop_messages)
+        get("/interop/messages/count", V2.OptimismController, :interop_messages_count)
+        get("/interop/public-key", V2.OptimismController, :interop_public_key)
       end
     end
 
@@ -352,6 +359,8 @@ defmodule BlockScoutWeb.Routers.ApiRouter do
 
     scope "/proxy" do
       scope "/3dparty" do
+        get("/:platform_id", V2.Proxy.UniversalProxyController, :index)
+
         scope "/noves-fi" do
           get("/transactions/:transaction_hash_param", V2.Proxy.NovesFiController, :transaction)
 
@@ -488,7 +497,8 @@ defmodule BlockScoutWeb.Routers.ApiRouter do
     # leave the same endpoint in v1 in order to keep backward compatibility
     get("/search", SearchController, :search)
 
-    # todo: remove these old CSV export related endpoints in 7.2.0 or higher since they are moved to /api/v2/** path
+    # todo: remove these old CSV export related endpoints in 7.2.0 or higher since they are moved to /api/v2/** path.
+    # Related frontend task https://github.com/blockscout/frontend/issues/2718.
     get("/transactions-csv", V2.CsvExportController, :transactions_csv)
     get("/token-transfers-csv", V2.CsvExportController, :token_transfers_csv)
     get("/internal-transactions-csv", V2.CsvExportController, :internal_transactions_csv)
