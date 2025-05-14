@@ -15,3 +15,9 @@ services:
     volumes:
       - ./logs/:/app/logs/
       - ./dets/:/app/dets/
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:4000/api-docs || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
