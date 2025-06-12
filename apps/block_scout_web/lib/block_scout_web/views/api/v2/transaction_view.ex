@@ -211,8 +211,7 @@ defmodule BlockScoutWeb.API.V2.TransactionView do
       "transactions_count_24h" => transactions_count,
       "pending_transactions_count" => pending_transactions_count,
       "transaction_fees_sum_24h" => transaction_fees_sum,
-      "transaction_fees_avg_24h" => transaction_fees_avg,
-      "coin_symbol" => Explorer.coin_name()
+      "transaction_fees_avg_24h" => transaction_fees_avg
     }
   end
 
