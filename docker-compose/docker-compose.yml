@@ -37,6 +37,7 @@ services:
       - db:database
     environment:
         ETHEREUM_JSONRPC_HTTP_URL: ${ETHEREUM_JSONRPC_HTTP_URL:-http://localhost:8545}
+        ETHEREUM_JSONRPC_FALLBACK_HTTP_URL: ${ETHEREUM_JSONRPC_FALLBACK_HTTP_URL:-http://localhost:8545}
         ETHEREUM_JSONRPC_TRACE_URL: ${ETHEREUM_JSONRPC_TRACE_URL:-http://localhost:8545}
         COIN_NAME: ${COIN_NAME:-dNXRA}
         COIN: ${COIN:-dNXRA}
