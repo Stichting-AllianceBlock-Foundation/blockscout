@@ -24,7 +24,7 @@ defmodule Explorer.Mixfile do
         dialyzer: :test
       ],
       start_permanent: Mix.env() == :prod,
-      version: "7.0.2",
+      version: "8.0.2",
       xref: [exclude: [BlockScoutWeb.Routers.WebRouter.Helpers, Indexer.Helper, Indexer.Fetcher.InternalTransaction]]
     ]
   end
@@ -61,7 +61,7 @@ defmodule Explorer.Mixfile do
       {:mime, "~> 2.0"},
       {:bcrypt_elixir, "~> 3.0"},
       # benchmark optimizations
-      {:benchee, "~> 1.3.0", only: :test},
+      {:benchee, "~> 1.4.0", only: :test},
       # CSV output for benchee
       {:benchee_csv, "~> 1.0.0", only: :test},
       {:bypass, "~> 2.1", only: :test},
@@ -80,6 +80,8 @@ defmodule Explorer.Mixfile do
       {:ex_keccak, "~> 0.7.5"},
       # Data factory for testing
       {:ex_machina, "~> 2.3", only: [:test]},
+      # ZSTD compression/decompression
+      {:ezstd, "~> 1.2"},
       {:exvcr, "~> 0.10", only: :test},
       {:httpoison, "~> 2.0"},
       {:jason, "~> 1.3"},
@@ -119,7 +121,7 @@ defmodule Explorer.Mixfile do
       {:redix, "~> 1.1"},
       {:hammer_backend_redis, "~> 6.1"},
       {:logger_json, "~> 5.1"},
-      {:typed_ecto_schema, "~> 0.4.1", runtime: false},
+      {:typed_ecto_schema, "~> 0.4.1"},
       {:ueberauth, "~> 0.7"},
       {:recon, "~> 2.5"},
       {:varint, "~> 1.4"},
@@ -128,7 +130,10 @@ defmodule Explorer.Mixfile do
       {:oauth2, "~> 2.0"},
       {:siwe, github: "royal-markets/siwe-ex", ref: "51c9c08240eb7eea3c35693011f8d260cd9bb3be"},
       {:joken, "~> 2.6"},
-      {:utils, in_umbrella: true}
+      {:utils, in_umbrella: true},
+      {:dns, "~> 2.4.0"},
+      {:inet_cidr, "~> 1.0.0"},
+      {:hammer, "~> 6.0"}
     ]
   end
 

@@ -3,17 +3,24 @@ defmodule Explorer.Chain.PendingOperationsHelper do
 
   import Ecto.Query
 
-  alias Explorer.Chain.{PendingBlockOperation, PendingTransactionOperation, Transaction}
+  alias Explorer.Chain.{Hash, PendingBlockOperation, PendingTransactionOperation, Transaction}
   alias Explorer.Repo
 
   @transactions_batch_size 1000
-  @blocks_batch_size 100
+  @blocks_batch_size 10
 
   def pending_operations_type do
-    if Application.get_env(:explorer, :json_rpc_named_arguments)[:variant] == EthereumJSONRPC.Geth and
-         not Application.get_env(:ethereum_jsonrpc, EthereumJSONRPC.Geth)[:block_traceable?],
-       do: "transactions",
-       else: "blocks"
+    # TODO: bring back this condition after the migration of internal transactions PK to [:block_hash, :transaction_index, :index]
+    # if Application.get_env(:explorer, :json_rpc_named_arguments)[:variant] == EthereumJSONRPC.Geth and
+    #      not Application.get_env(:ethereum_jsonrpc, EthereumJSONRPC.Geth)[:block_traceable?],
+    #    do: "transactions",
+    #    else: "blocks"
+
+    if Application.get_env(:explorer, :non_existing_variable, false) do
+      "transactions"
+    else
+      "blocks"
+    end
   end
 
   def actual_entity do
@@ -110,5 +117,24 @@ defmodule Explorer.Chain.PendingOperationsHelper do
     now = DateTime.utc_now()
 
     Enum.map(params, &Map.merge(&1, %{inserted_at: now, updated_at: now}))
+  end
+
+  @doc """
+  Generates a query to find pending block operations that match any of the given block hashes.
+
+  ## Parameters
+
+    - `block_hashes`: A list of block hashes to filter the pending block operations.
+
+  ## Returns
+
+    - An Ecto query that can be executed to retrieve the matching pending block operations.
+  """
+  @spec block_hash_in_query([Hash.Full.t()]) :: Ecto.Query.t()
+  def block_hash_in_query(block_hashes) do
+    from(
+      pending_ops in PendingBlockOperation,
+      where: pending_ops.block_hash in ^block_hashes
+    )
   end
 end

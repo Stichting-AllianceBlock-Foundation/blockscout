@@ -12,9 +12,9 @@ defmodule Explorer.Application do
     BackgroundMigrations,
     BlockNumber,
     Blocks,
+    ChainId,
     GasPriceOracle,
     MinMissingBlockNumber,
-    NetVersion,
     StateChanges,
     Transactions,
     TransactionsApiV2,
@@ -31,6 +31,7 @@ defmodule Explorer.Application do
     TransactionsCount
   }
 
+  alias Explorer.Chain.Optimism.InteropMessage, as: OptimismInteropMessage
   alias Explorer.Chain.Supply.RSK
 
   alias Explorer.Market.MarketHistoryCache
@@ -64,6 +65,7 @@ defmodule Explorer.Application do
       Supervisor.child_spec({Task.Supervisor, name: Explorer.WETHMigratorSupervisor}, id: WETHMigratorSupervisor),
       Explorer.SmartContract.SolcDownloader,
       Explorer.SmartContract.VyperDownloader,
+      Explorer.Chain.Health.Monitor,
       {Registry, keys: :duplicate, name: Registry.ChainEvents, id: Registry.ChainEvents},
       {Admin.Recovery, [[], [name: Admin.Recovery]]},
       Accounts,
@@ -73,9 +75,9 @@ defmodule Explorer.Application do
       BlocksCount,
       BlockNumber,
       Blocks,
+      ChainId,
       GasPriceOracle,
       GasUsageSum,
-      NetVersion,
       PendingBlockOperationCount,
       TransactionsCount,
       StateChanges,
@@ -87,7 +89,12 @@ defmodule Explorer.Application do
       con_cache_child_spec(RSK.cache_name(), ttl_check_interval: :timer.minutes(1), global_ttl: :timer.minutes(30)),
       {Redix, redix_opts()},
       {Explorer.Utility.MissingRangesManipulator, []},
-      {Explorer.Utility.ReplicaAccessibilityManager, []}
+      {Explorer.Utility.ReplicaAccessibilityManager, []},
+      :hackney_pool.child_spec(:default,
+        recv_timeout: 60_000,
+        timeout: 60_000,
+        max_connections: Application.get_env(:explorer, :hackney_default_pool_size)
+      )
     ]
 
     children = base_children ++ configurable_children()
@@ -104,10 +111,10 @@ defmodule Explorer.Application do
   defp configurable_children do
     configurable_children_set =
       [
-        configure(Explorer.ExchangeRates),
-        configure(Explorer.ExchangeRates.TokenExchangeRates),
+        configure_mode_dependent_process(Explorer.Market.Fetcher.Coin, :api),
+        configure_mode_dependent_process(Explorer.Market.Fetcher.Token, :indexer),
+        configure_mode_dependent_process(Explorer.Market.Fetcher.History, :indexer),
         configure(Explorer.ChainSpec.GenesisData),
-        configure(Explorer.Market.History.Cataloger),
         configure(Explorer.Chain.Cache.Counters.ContractsCount),
         configure(Explorer.Chain.Cache.Counters.NewContractsCount),
         configure(Explorer.Chain.Cache.Counters.VerifiedContractsCount),
@@ -152,6 +159,7 @@ defmodule Explorer.Application do
         configure(Explorer.Migrator.RestoreOmittedWETHTransfers),
         configure(Explorer.Migrator.FilecoinPendingAddressOperations),
         configure(Explorer.Migrator.SmartContractLanguage),
+        configure(Explorer.Migrator.SanitizeErc1155TokenBalancesWithoutTokenIds),
         Explorer.Migrator.BackfillMultichainSearchDB
         |> configure_mode_dependent_process(:indexer)
         |> configure_multichain_search_microservice(),
@@ -159,6 +167,14 @@ defmodule Explorer.Application do
         configure_mode_dependent_process(Explorer.Migrator.ShrinkInternalTransactions, :indexer),
         configure_chain_type_dependent_process(Explorer.Chain.Cache.Counters.Blackfort.ValidatorsCount, :blackfort),
         configure_chain_type_dependent_process(Explorer.Chain.Cache.Counters.Stability.ValidatorsCount, :stability),
+        configure_chain_type_dependent_process(Explorer.Chain.Cache.LatestL1BlockNumber, [
+          :optimism,
+          :polygon_edge,
+          :polygon_zkevm,
+          :scroll,
+          :shibarium
+        ]),
+        configure_chain_type_dependent_con_cache(),
         Explorer.Migrator.SanitizeDuplicatedLogIndexLogs
         |> configure()
         |> configure_chain_type_dependent_process([
@@ -171,6 +187,7 @@ defmodule Explorer.Application do
         configure_mode_dependent_process(Explorer.Migrator.SanitizeVerifiedAddresses, :indexer),
         configure_mode_dependent_process(Explorer.Migrator.SanitizeEmptyContractCodeAddresses, :indexer),
         configure_mode_dependent_process(Explorer.Migrator.ReindexInternalTransactionsWithIncompatibleStatus, :indexer),
+        configure_mode_dependent_process(Explorer.Migrator.ReindexDuplicatedInternalTransactions, :indexer),
         configure_mode_dependent_process(
           Explorer.Migrator.HeavyDbIndexOperation.CreateAddressesVerifiedIndex,
           :indexer
@@ -264,9 +281,27 @@ defmodule Explorer.Application do
           Explorer.Migrator.HeavyDbIndexOperation.DropTransactionsToAddressHashWithPendingIndex,
           :indexer
         ),
+        configure_mode_dependent_process(Explorer.Migrator.BackfillMetadataURL, :indexer),
+        configure_mode_dependent_process(
+          Explorer.Migrator.HeavyDbIndexOperation.CreateLogsDepositsWithdrawalsIndex,
+          :indexer
+        ),
+        configure_mode_dependent_process(
+          Explorer.Migrator.HeavyDbIndexOperation.CreateAddressesTransactionsCountDescPartialIndex,
+          :indexer
+        ),
+        configure_mode_dependent_process(
+          Explorer.Migrator.HeavyDbIndexOperation.CreateAddressesTransactionsCountAscCoinBalanceDescHashPartialIndex,
+          :indexer
+        ),
+        configure_mode_dependent_process(
+          Explorer.Migrator.HeavyDbIndexOperation.CreateInternalTransactionsBlockHashTransactionIndexIndexUniqueIndex,
+          :indexer
+        ),
         Explorer.Migrator.RefetchContractCodes |> configure() |> configure_chain_type_dependent_process(:zksync),
         configure(Explorer.Chain.Fetcher.AddressesBlacklist),
-        Explorer.Migrator.SwitchPendingOperations
+        Explorer.Migrator.SwitchPendingOperations,
+        configure_mode_dependent_process(Explorer.Utility.RateLimiter, :api)
       ]
       |> List.flatten()
 
@@ -340,6 +375,19 @@ defmodule Explorer.Application do
       process
     else
       []
+    end
+  end
+
+  defp configure_chain_type_dependent_con_cache do
+    case Application.get_env(:explorer, :chain_type) do
+      :optimism ->
+        [
+          con_cache_child_spec(OptimismInteropMessage.interop_instance_api_url_to_public_key_cache()),
+          con_cache_child_spec(OptimismInteropMessage.interop_chain_id_to_instance_info_cache())
+        ]
+
+      _ ->
+        []
     end
   end
 
